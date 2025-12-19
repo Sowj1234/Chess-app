@@ -1,0 +1,40 @@
+import mongoose from 'mongoose';
+
+//This imports the Mongoose library, which is a wrapper around MongoDB.
+//Mongoose helps you define schemas, models, and connect to the database in an object-oriented way.
+
+let cached = global.mongoose;
+//We check if we’ve already created a connection before.
+//On serverless platforms (like Vercel), your app might re-run often, so we cache the connection to avoid creating a new one every time.
+
+if (!cached) 
+{
+  cached = global.mongoose = { conn: null, promise: null };
+}
+/*If nothing is cached, we create a new empty cache object:
+conn: the active MongoDB connection.
+promise: the promise for an in-progress connection (used to avoid duplicate connection attempts)*/
+
+async function connectToDatabase() {
+  if (cached.conn) return cached.conn;
+}
+//If the connection already exists (cached.conn), just return it — no need to connect again.
+
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI, {
+      bufferCommands: false,
+    }).then(mongoose => {
+      return mongoose;
+    });
+  }
+/*If no connection is in progress (cached.promise), create one:
+mongoose.connect(...) connects to MongoDB using the URI.
+bufferCommands: false disables mongoose’s buffering — we only want real-time behavior.
+The .then(mongoose => ...) just returns the connected mongoose instance.*/
+
+cached.conn = await cached.promise;
+return cached.conn;
+
+
+//We wait for the connection to finish and store it in cached.conn for future use.
